@@ -30,28 +30,59 @@ app.use(cors());
 app.use(express.json());
 
 
-app.get("/demouser", async (req, res) => {
-    try {
-        let demo = new Lesson({
-            lessonNumber: 1,
-            lessonTitle: "lesson title" // Set admin status if needed
-        });
+// app.get("/demouser", async (req, res) => {
+//     try {
+//         let demo = new Lesson({
+//             lessonNumber: 1,
+//             lessonTitle: "lesson title" // Set admin status if needed
+//         });
 
-        await demo.save(); // Save to MongoDB
-        res.send(demo);
+//         await demo.save(); // Save to MongoDB
+//         res.send(demo);
 
         
-    } catch (err) {
-        console.error(err);
-        res.status(500).send("Error creating admin user");
-    }
-});
-
-
+//     } catch (err) {
+//         console.error(err);
+//         res.status(500).send("Error creating admin user");
+//     }
+// });
 
 app.get('/',(req, res)=>{
     res.send('This is a root route');
 })
+
+
+app.get("/admin/allLessons", async(req,res)=>{
+    let allLessons = await Lesson.find({});
+    res.send(allLessons);
+})
+
+
+app.post("/admin/allLessons", async(req,res)=>{
+    let {lessonName, lessonNumber} = req.body;
+
+    let newLesson = new Lesson(
+        {
+            lessonTitle: lessonName,
+            lessonNumber
+        }
+    );
+
+    await newLesson.save();
+    res.send(newLesson)
+})
+
+
+
+
+
+
+
+
+
+
+
+
 
 app.listen(port, ()=>{
     console.log(`port ${port} is running!!!`)

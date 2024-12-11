@@ -6,7 +6,6 @@ const lessonSchema = new mongoose.Schema({
     lessonNumber: {
         type: Number,
         required: true,
-        unique: true // Each lesson should have a unique number
     },
     lessonTitle: {
         type: String,
