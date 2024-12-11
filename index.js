@@ -8,7 +8,8 @@ const mongoose = require("mongoose");
 const Admin = require('./models/admin.js')
 const Lesson = require('./models/lesson.js')
 const User = require('./models/newUser.js')
-const Vocabulary = require('./models/vocabulary.js')
+const Vocabulary = require('./models/vocabulary.js')      
+const Tutorial = require('./models/tutorial.js');    
 
 // app and port
 const app = express()
@@ -55,9 +56,7 @@ app.get('/',(req, res)=>{
 app.get("/admin/allLessons", async(req,res)=>{
     let allLessons = await Lesson.find({});
     res.send(allLessons);
-})
-
-
+});
 app.post("/admin/allLessons", async(req,res)=>{
     let {lessonName, lessonNumber} = req.body;
 
@@ -70,10 +69,42 @@ app.post("/admin/allLessons", async(req,res)=>{
 
     await newLesson.save();
     res.send(newLesson)
+});
+
+
+
+app.get("/admin/allVocabularies", async(req,res)=>{
+    let allVocabularies = await Vocabulary.find({});
+    res.send(allVocabularies);
+});
+app.post("/admin/allVocabularies", async(req,res)=>{
+    
+    let newVocabulary = req.body;
+    console.log(newVocabulary);
+
+    let vocabulary = new Vocabulary(newVocabulary);
+
+    let lesson = await Lesson.findOne({ lessonNumber: newVocabulary.lessonNo });
+
+    lesson.vocabularies.push(vocabulary);
+
+    let vocab = await vocabulary.save();
+    let newLesson = await lesson.save();
+
+    res.send(vocab);
+});
+
+app.get("/admin/allTutorials", async(req,res)=>{
+    let allTutorials = await Tutorial.find({});
+    res.send(allTutorials);
+});
+app.post("/admin/allTutorials", async(req,res)=>{
+    let newTutorials = req.body;
+
+    let tutorial = new Tutorial(newTutorials);
+    await tutorial.save();
+    res.send(tutorial);
 })
-
-
-
 
 
 

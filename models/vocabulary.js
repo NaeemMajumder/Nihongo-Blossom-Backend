@@ -18,7 +18,7 @@ const vocabularySchema = new mongoose.Schema({
         type: String,
         required: true
     },
-    lessonNumber: {
+    lessonNo: {
         type: Number, // Storing the lesson number here
         required: true
     }
