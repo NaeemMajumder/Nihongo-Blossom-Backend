@@ -15,12 +15,15 @@ const lessonSchema = new mongoose.Schema({
     vocabularies: [
         {
             type: mongoose.Schema.Types.ObjectId,
-            ref: "Vocabulary" // Referring to the Vocabulary model
+            ref: "Vocabulary" 
         }
-    ]
+    ],
+    completedStatus: {
+        type: Boolean,
+        default: false 
+    }
 });
 
-// You can add methods, virtuals, or pre/post hooks if necessary
 
 const Lesson = mongoose.model("Lesson", lessonSchema);
 
