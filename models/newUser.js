@@ -1,5 +1,3 @@
-const mongoose = require('mongoose');
-const Lesson = require('./lesson.js');
 
 // User model
 const mongoose = require('mongoose');

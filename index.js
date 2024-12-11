@@ -5,6 +5,10 @@ if(process.env.NODE_ENV != "production"){
 const express = require('express');
 const cors = require('cors');
 const mongoose = require("mongoose");
+const Admin = require('./models/admin.js')
+const Lesson = require('./models/lesson.js')
+const User = require('./models/newUser.js')
+const Vocabulary = require('./models/vocabulary.js')
 
 // app and port
 const app = express()
@@ -24,6 +28,24 @@ async function main() {
 // middleware
 app.use(cors());
 app.use(express.json());
+
+
+app.get("/demouser", async (req, res) => {
+    try {
+        let demo = new Lesson({
+            lessonNumber: 1,
+            lessonTitle: "lesson title" // Set admin status if needed
+        });
+
+        await demo.save(); // Save to MongoDB
+        res.send(demo);
+
+        
+    } catch (err) {
+        console.error(err);
+        res.status(500).send("Error creating admin user");
+    }
+});
 
 
 
