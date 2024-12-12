@@ -174,10 +174,48 @@ app.get("/lessons/:id", async (req, res) => {
   res.send(lesson);
 });
 
+app.get("/admin/allLessons/:id", async (req, res) => {
+  let lesson = await Lesson.findById(req.params.id).populate("vocabularies");
+  // console.log(lesson);
+  res.send(lesson);
+});
 
-app.get("/admin/allVocabularies/:id", (req,res)=>{
-  console.log(req.params.id);
-})
+
+app.get("/admin/allVocabularies/:id", async(req,res)=>{
+
+  let vocabulary = await Vocabulary.findById(req.params.id);
+  res.send(vocabulary);
+});
+
+app.get("/admin/allVocabularies/edit/:id", async(req,res)=>{
+
+  let vocabulary = await Vocabulary.findById(req.params.id);
+  res.send(vocabulary);
+});
+app.put("/admin/allVocabularies/:id", async(req,res)=>{
+console.log(req.params.id);
+  let updatedVocabulary = req.body;
+  let vocabulary = await Vocabulary.findByIdAndUpdate(req.params.id,{...updatedVocabulary});
+  console.log(vocabulary);
+  await vocabulary.save();
+  res.send(vocabulary);
+
+});
+app.delete("/admin/allVocabularies/:id", async (req, res) => {
+  try {
+    const result = await Vocabulary.findByIdAndDelete(req.params.id);
+    if (result) {
+      res.status(200).send({ message: "Vocabulary deleted successfully" });
+    } else {
+      res.status(404).send({ message: "Vocabulary not found" });
+    }
+  } catch (error) {
+    res.status(500).send({ message: "Error deleting vocabulary", error });
+  }
+});
+
+
+
 
 app.listen(port, () => {
   console.log(`port ${port} is running!!!`);
