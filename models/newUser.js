@@ -41,8 +41,10 @@ const userSchema = new mongoose.Schema({
     required: true,
   },
   photoUrl: {
-    type: String,
-    default: "https://example.com/default-photo.png",
+    url:String,
+    filename:String,
+    // type: String,
+    // default: "https://example.com/default-photo.png",
   },
   isAdmin: {
     type: Boolean,

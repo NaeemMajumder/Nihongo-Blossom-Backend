@@ -1,7 +1,7 @@
 if (process.env.NODE_ENV != "production") {
   require("dotenv").config();
 }
-// import packages
+
 const express = require("express");
 const cors = require("cors");
 const mongoose = require("mongoose");
@@ -11,77 +11,55 @@ const User = require("./models/newUser.js");
 const Vocabulary = require("./models/vocabulary.js");
 const Tutorial = require("./models/tutorial.js");
 
+const multer = require("multer");
+const { storage } = require("./cloudConfig.js");
+const upload = multer({ storage });
 
-// app and port
 const app = express();
 const port = process.env.PORT || 8080;
 
-// mongoose connect
 let mongo_url = "mongodb://127.0.0.1:27017/NihongoBlossom";
 main()
-  .then(() => {
-    console.log("mongodb is connected");
-  })
-  .catch((error) => {
-    console.log(error);
-  });
+  .then(() => {})
+  .catch((error) => {});
 async function main() {
   await mongoose.connect(mongo_url);
 }
 
-// middleware
 app.use(cors());
 app.use(express.json());
-
-// app.get("/demouser", async (req, res) => {
-//     try {
-//         let demo = new Lesson({
-//             lessonNumber: 1,
-//             lessonTitle: "lesson title" // Set admin status if needed
-//         });
-
-//         await demo.save(); // Save to MongoDB
-//         res.send(demo);
-
-//     } catch (err) {
-//         console.error(err);
-//         res.status(500).send("Error creating admin user");
-//     }
-// });
 
 app.get("/", (req, res) => {
   res.send("This is a root route");
 });
 
-app.get('/allUsers/user', async (req, res) => {
+app.get("/allUsers/user", async (req, res) => {
   let { email } = req.query;
-  console.log(email);
 
   try {
     let user;
-    if (email === 'admin@gmail.com') {
+    if (email === "admin@gmail.com") {
       user = await Admin.findOne({ email: email });
     } else {
       user = await User.findOne({ email: email });
     }
-    console.log(user);
 
     if (user) {
       res.json(user);
     } else {
-      res.status(404).json({ error: 'User not found' });
+      res.status(404).json({ error: "User not found" });
     }
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: 'Server error' });
+    res.status(500).json({ error: "Server error" });
   }
 });
-
 
 app.get("/admin/allLessons", async (req, res) => {
   let allLessons = await Lesson.find({});
   res.send(allLessons);
 });
+
 app.post("/admin/allLessons", async (req, res) => {
   let { lessonName, lessonNumber } = req.body;
 
@@ -98,6 +76,7 @@ app.get("/admin/allVocabularies", async (req, res) => {
   let allVocabularies = await Vocabulary.find({});
   res.send(allVocabularies);
 });
+
 app.post("/admin/allVocabularies", async (req, res) => {
   try {
     let newVocabulary = req.body;
@@ -129,6 +108,7 @@ app.get("/admin/allTutorials", async (req, res) => {
   let allTutorials = await Tutorial.find({});
   res.send(allTutorials);
 });
+
 app.post("/admin/allTutorials", async (req, res) => {
   let newTutorials = req.body;
 
@@ -141,34 +121,38 @@ app.get("/admin/allUsers", async (req, res) => {
   let allUsers = await User.find({});
   res.send(allUsers);
 });
-app.post("/admin/allUsers", async (req, res) => {
-  let newUser = req.body;
-  let user = new User(newUser);
+
+app.post("/admin/allUsers", upload.single("photoUrl"), async (req, res) => {
+  let { filename, path } = req.file;
+  let url = path;
+
+  let user = new User(req.body);
+  user.photoUrl = { filename, url };
   await user.save();
   res.send(user);
 });
+
 app.put("/admin/allUsers/:id", async (req, res) => {
-  const userId = req.params.id;  // Access the user ID from the URL parameter
-  const { isAdmin } = req.body;  // Extract isAdmin from the request body
+  const userId = req.params.id;
+  const { isAdmin } = req.body;
 
   try {
-    // Find the user by ID
     const user = await User.findById(userId);
 
     if (!user) {
-      return res.status(404).json({ message: "User not found" });  // User doesn't exist
+      return res.status(404).json({ message: "User not found" });
     }
 
-    // Check if the current isAdmin value is the same as the new value
     if (user.isAdmin === isAdmin) {
-      return res.status(400).json({ message: "No change in user role, isAdmin is already the same" });
+      return res.status(400).json({
+        message: "No change in user role, isAdmin is already the same",
+      });
     }
 
-    // If different, update the user
     const updatedUser = await User.findByIdAndUpdate(
-      userId,  // User ID from URL
-      { isAdmin },  // The fields to update
-      { new: true }  // Option to return the updated user document
+      userId,
+      { isAdmin },
+      { new: true }
     );
 
     res.json({ message: "User role updated successfully", user: updatedUser });
@@ -178,29 +162,24 @@ app.put("/admin/allUsers/:id", async (req, res) => {
   }
 });
 
-
 app.post("/completeLesson", async (req, res) => {
   try {
     const { lessonId, userEmail } = req.body;
 
-    // Find the user by email
     let userInfo = await User.findOne({ email: userEmail });
     if (!userInfo) {
       return res.status(404).json({ message: "User not found" });
     }
 
-    // Find the lesson by its ID
     let lessonInfo = await Lesson.findById(lessonId);
     if (!lessonInfo) {
       return res.status(404).json({ message: "Lesson not found" });
     }
 
-    // Ensure the lessons array exists
     if (!userInfo.lessons) {
-      userInfo.lessons = []; // Initialize the lessons array if it does not exist
+      userInfo.lessons = [];
     }
 
-    // Check if the lesson is already completed by the user
     const lessonAlreadyCompleted = userInfo.lessons.some(
       (lesson) => lesson.lessonId.toString() === lessonId.toString()
     );
@@ -209,16 +188,12 @@ app.post("/completeLesson", async (req, res) => {
       return res.status(400).json({ message: "You have already completed this lesson." });
     }
 
-    // Add the lesson to the user's lessons
     userInfo.lessons.push({
-      lessonId: lessonInfo._id, // Save the lesson's ObjectId
-      completedStatus: true, // Mark the lesson as completed
+      lessonId: lessonInfo._id,
+      completedStatus: true,
     });
 
-    // Save the updated user info
     await userInfo.save();
-
-    // Send a success response
     res.status(200).json({ message: "Lesson marked as completed" });
   } catch (error) {
     console.error("Error in completing lesson:", error);
@@ -226,63 +201,51 @@ app.post("/completeLesson", async (req, res) => {
   }
 });
 
-
 app.get("/lessons", async (req, res) => {
   let lessons = await Lesson.find({}).populate("vocabularies");
   res.send(lessons);
 });
+
 app.get("/lessons/:id", async (req, res) => {
   let lesson = await Lesson.findById(req.params.id).populate("vocabularies");
-  // console.log(lesson);
   res.send(lesson);
 });
 
 app.get("/admin/allLessons/:id", async (req, res) => {
   let lesson = await Lesson.findById(req.params.id).populate("vocabularies");
-  // console.log(lesson);
   res.send(lesson);
 });
 
-
-app.get("/admin/allVocabularies/:id", async(req,res)=>{
-
+app.get("/admin/allVocabularies/:id", async (req, res) => {
   let vocabulary = await Vocabulary.findById(req.params.id);
   res.send(vocabulary);
 });
 
-app.get("/admin/allVocabularies/edit/:id", async(req,res)=>{
-
+app.get("/admin/allVocabularies/edit/:id", async (req, res) => {
   let vocabulary = await Vocabulary.findById(req.params.id);
   res.send(vocabulary);
 });
-// POST to create vocabulary and assign it to a lesson
+
 app.post("/admin/allVocabularies", async (req, res) => {
   try {
     let newVocabulary = req.body;
     let vocabulary = new Vocabulary(newVocabulary);
 
-    // Find the lesson based on the lesson number from the vocabulary input
     let lesson = await Lesson.findOne({ lessonNumber: newVocabulary.lessonNo });
 
     if (!lesson) {
-      return res
-        .status(404)
-        .send({ message: "Lesson not found for the given lesson number." });
+      return res.status(404).send({ message: "Lesson not found for the given lesson number." });
     }
 
-    // Add the new vocabulary to the lesson's vocabularies array
     lesson.vocabularies.push(vocabulary);
 
-    // Save the vocabulary and the lesson
     let vocab = await vocabulary.save();
     let newLesson = await lesson.save();
 
     res.send(vocab);
   } catch (error) {
     console.error(error);
-    res
-      .status(500)
-      .send({ message: "An error occurred while processing the request." });
+    res.status(500).send({ message: "An error occurred while processing the request." });
   }
 });
 
@@ -292,41 +255,48 @@ app.put("/admin/allVocabularies/:id", async (req, res) => {
     const { id } = req.params;
     const updatedVocabulary = req.body;
 
-    // Find the existing vocabulary to update
     let vocabulary = await Vocabulary.findById(id);
 
     if (!vocabulary) {
       return res.status(404).send({ message: "Vocabulary not found." });
     }
 
-    // If the lessonNo is changing, update both the old and new lesson references
     if (vocabulary.lessonNo !== updatedVocabulary.lessonNo) {
-      // 1. Remove the vocabulary from the old lesson's vocabularies array
-      let oldLesson = await Lesson.findOne({ lessonNumber: vocabulary.lessonNo });
+      let oldLesson = await Lesson.findOne({
+        lessonNumber: vocabulary.lessonNo,
+      });
       if (oldLesson) {
-        oldLesson.vocabularies.pull(vocabulary._id); // Remove the vocabulary from old lesson
+        oldLesson.vocabularies.pull(vocabulary._id);
         await oldLesson.save();
       }
 
-      // 2. Find the new lesson based on the new lessonNo and add the vocabulary
-      let newLesson = await Lesson.findOne({ lessonNumber: updatedVocabulary.lessonNo });
+      let newLesson = await Lesson.findOne({
+        lessonNumber: updatedVocabulary.lessonNo,
+      });
       if (!newLesson) {
         return res
           .status(404)
-          .send({ message: "New lesson not found for the given lesson number." });
+          .send({
+            message: "New lesson not found for the given lesson number.",
+          });
       }
 
-      newLesson.vocabularies.push(vocabulary); // Add vocabulary to the new lesson
+      newLesson.vocabularies.push(vocabulary);
       await newLesson.save();
     }
 
-    // Update the vocabulary with the new data (including the new lessonNo)
-    vocabulary = await Vocabulary.findByIdAndUpdate(id, { ...updatedVocabulary }, { new: true });
+    vocabulary = await Vocabulary.findByIdAndUpdate(
+      id,
+      { ...updatedVocabulary },
+      { new: true },
+    );
 
     res.send(vocabulary);
   } catch (error) {
     console.error("Error updating vocabulary:", error);
-    res.status(500).send({ message: "An error occurred while updating the vocabulary." });
+    res
+      .status(500)
+      .send({ message: "An error occurred while updating the vocabulary." });
   }
 });
 
@@ -343,27 +313,28 @@ app.delete("/admin/allVocabularies/:id", async (req, res) => {
   }
 });
 
-app.get("/admin/allLessons/edit/:id", async(req,res)=>{
-  console.log(req.params.id);
+app.get("/admin/allLessons/edit/:id", async (req, res) => {
   let lesson = await Lesson.findById(req.params.id);
   res.send(lesson);
 });
 
-app.put('/admin/allLessons/:id', async (req, res) => {
+app.put("/admin/allLessons/:id", async (req, res) => {
   try {
     const { id } = req.params;
     const updateLesson = req.body;
 
-    const updatedLesson = await Lesson.findByIdAndUpdate(id,{...updateLesson});
+    const updatedLesson = await Lesson.findByIdAndUpdate(id, {
+      ...updateLesson,
+    });
 
     if (!updatedLesson) {
-      return res.status(404).json({ message: 'Lesson not found' });
+      return res.status(404).json({ message: "Lesson not found" });
     }
 
     res.status(200).json(updatedLesson);
   } catch (error) {
-    console.error('Error updating lesson:', error);
-    res.status(500).json({ message: 'Internal server error' });
+    console.error("Error updating lesson:", error);
+    res.status(500).json({ message: "Internal server error" });
   }
 });
 app.delete("/admin/allLessons/:id", async (req, res) => {
@@ -379,30 +350,30 @@ app.delete("/admin/allLessons/:id", async (req, res) => {
   }
 });
 
-app.get("/admin/allTutorials/edit/:id", async(req,res)=>{
-  console.log(req.params.id);
+app.get("/admin/allTutorials/edit/:id", async (req, res) => {
   let tutorial = await Tutorial.findById(req.params.id);
   res.send(tutorial);
 });
-app.put('/admin/allTutorials/:id', async (req, res) => {
+app.put("/admin/allTutorials/:id", async (req, res) => {
   try {
     const { id } = req.params;
     const updateTutorial = req.body;
 
-    const updatedTutorial = await Tutorial.findByIdAndUpdate(id,{...updateTutorial});
+    const updatedTutorial = await Tutorial.findByIdAndUpdate(id, {
+      ...updateTutorial,
+    });
 
     if (!updatedTutorial) {
-      return res.status(404).json({ message: 'Lesson not found' });
+      return res.status(404).json({ message: "Lesson not found" });
     }
 
     res.status(200).json(updatedTutorial);
   } catch (error) {
-    console.error('Error updating lesson:', error);
-    res.status(500).json({ message: 'Internal server error' });
+    console.error("Error updating lesson:", error);
+    res.status(500).json({ message: "Internal server error" });
   }
 });
 app.delete("/admin/allTutorials/:id", async (req, res) => {
-  console.log(req.params.id);
   try {
     const result = await Tutorial.findByIdAndDelete(req.params.id);
     if (result) {
@@ -414,10 +385,6 @@ app.delete("/admin/allTutorials/:id", async (req, res) => {
     res.status(500).send({ message: "Error deleting Tutorial", error });
   }
 });
-
-
-
-
 
 app.listen(port, () => {
   console.log(`port ${port} is running!!!`);
