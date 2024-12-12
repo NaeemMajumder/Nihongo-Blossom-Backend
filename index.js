@@ -11,6 +11,7 @@ const User = require("./models/newUser.js");
 const Vocabulary = require("./models/vocabulary.js");
 const Tutorial = require("./models/tutorial.js");
 
+
 // app and port
 const app = express();
 const port = process.env.PORT || 8080;
@@ -52,9 +53,30 @@ app.get("/", (req, res) => {
   res.send("This is a root route");
 });
 
-app.get("/user",  (req, res) => {
+app.get('/allUsers/user', async (req, res) => {
+  let { email } = req.query;
+  console.log(email);
 
+  try {
+    let user;
+    if (email === 'admin@gmail.com') {
+      user = await Admin.findOne({ email: email });
+    } else {
+      user = await User.findOne({ email: email });
+    }
+    console.log(user);
+
+    if (user) {
+      res.json(user);
+    } else {
+      res.status(404).json({ error: 'User not found' });
+    }
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Server error' });
+  }
 });
+
 
 app.get("/admin/allLessons", async (req, res) => {
   let allLessons = await Lesson.find({});
@@ -125,6 +147,37 @@ app.post("/admin/allUsers", async (req, res) => {
   await user.save();
   res.send(user);
 });
+app.put("/admin/allUsers/:id", async (req, res) => {
+  const userId = req.params.id;  // Access the user ID from the URL parameter
+  const { isAdmin } = req.body;  // Extract isAdmin from the request body
+
+  try {
+    // Find the user by ID
+    const user = await User.findById(userId);
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });  // User doesn't exist
+    }
+
+    // Check if the current isAdmin value is the same as the new value
+    if (user.isAdmin === isAdmin) {
+      return res.status(400).json({ message: "No change in user role, isAdmin is already the same" });
+    }
+
+    // If different, update the user
+    const updatedUser = await User.findByIdAndUpdate(
+      userId,  // User ID from URL
+      { isAdmin },  // The fields to update
+      { new: true }  // Option to return the updated user document
+    );
+
+    res.json({ message: "User role updated successfully", user: updatedUser });
+  } catch (error) {
+    console.error("Error updating user:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
 
 app.post("/completeLesson", async (req, res) => {
   try {
@@ -147,6 +200,15 @@ app.post("/completeLesson", async (req, res) => {
       userInfo.lessons = []; // Initialize the lessons array if it does not exist
     }
 
+    // Check if the lesson is already completed by the user
+    const lessonAlreadyCompleted = userInfo.lessons.some(
+      (lesson) => lesson.lessonId.toString() === lessonId.toString()
+    );
+
+    if (lessonAlreadyCompleted) {
+      return res.status(400).json({ message: "You have already completed this lesson." });
+    }
+
     // Add the lesson to the user's lessons
     userInfo.lessons.push({
       lessonId: lessonInfo._id, // Save the lesson's ObjectId
@@ -163,6 +225,7 @@ app.post("/completeLesson", async (req, res) => {
     res.status(500).json({ message: "Something went wrong" });
   }
 });
+
 
 app.get("/lessons", async (req, res) => {
   let lessons = await Lesson.find({}).populate("vocabularies");

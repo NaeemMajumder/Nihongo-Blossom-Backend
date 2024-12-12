@@ -7,7 +7,7 @@ const adminSchema = new mongoose.Schema({
         type: String,
         required: true,
     },
-    adminStatus: {
+    isAdmin: {
         type: Boolean,
         default: true // Default value is true for admin
     }

@@ -1,6 +1,5 @@
-
 // // User model
-const mongoose = require('mongoose');
+const mongoose = require("mongoose");
 const Lesson = require("./lesson.js"); // Assuming you have a Lesson model
 
 // const userSchema = new mongoose.Schema({
@@ -28,47 +27,40 @@ const Lesson = require("./lesson.js"); // Assuming you have a Lesson model
 //     ]
 // });
 
-
 // const User = mongoose.model("User", userSchema);
 
 // module.exports = User;
 
-
-
-
-
-
 const userSchema = new mongoose.Schema({
-    name: {
-        type: String,
-        required: true
-    },
-    email: {
-        type: String,
-        required: true,
-    },
-    photoUrl: {
-        type: String,
-        default: "https://example.com/default-photo.png"
-    },
-    isAdmin: {
+  name: {
+    type: String,
+    required: true,
+  },
+  email: {
+    type: String,
+    required: true,
+  },
+  photoUrl: {
+    type: String,
+    default: "https://example.com/default-photo.png",
+  },
+  isAdmin: {
+    type: Boolean,
+    default: false,
+  },
+  lessons: [
+    {
+      lessonId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Lesson",
+      },
+      completedStatus: {
         type: Boolean,
-        default: false
+        default: false, // By default, lessons are incomplete
+      },
     },
-    lessons: [
-        {
-            lessonId: {
-                type: mongoose.Schema.Types.ObjectId,
-                ref: "Lesson"
-            },
-            completedStatus: {
-                type: Boolean,
-                default: false // By default, lessons are incomplete
-            }
-        }
-    ]
+  ],
 });
-
 
 const User = mongoose.model("User", userSchema);
 
