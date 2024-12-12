@@ -303,6 +303,18 @@ app.put('/admin/allLessons/:id', async (req, res) => {
     res.status(500).json({ message: 'Internal server error' });
   }
 });
+app.delete("/admin/allLessons/:id", async (req, res) => {
+  try {
+    const result = await Lesson.findByIdAndDelete(req.params.id);
+    if (result) {
+      res.status(200).send({ message: "Lesson deleted successfully" });
+    } else {
+      res.status(404).send({ message: "Lesson not found" });
+    }
+  } catch (error) {
+    res.status(500).send({ message: "Error deleting Lesson", error });
+  }
+});
 
 
 
