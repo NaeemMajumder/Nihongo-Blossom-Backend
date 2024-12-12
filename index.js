@@ -192,15 +192,81 @@ app.get("/admin/allVocabularies/edit/:id", async(req,res)=>{
   let vocabulary = await Vocabulary.findById(req.params.id);
   res.send(vocabulary);
 });
-app.put("/admin/allVocabularies/:id", async(req,res)=>{
-console.log(req.params.id);
-  let updatedVocabulary = req.body;
-  let vocabulary = await Vocabulary.findByIdAndUpdate(req.params.id,{...updatedVocabulary});
-  console.log(vocabulary);
-  await vocabulary.save();
-  res.send(vocabulary);
+// POST to create vocabulary and assign it to a lesson
+app.post("/admin/allVocabularies", async (req, res) => {
+  try {
+    let newVocabulary = req.body;
+    let vocabulary = new Vocabulary(newVocabulary);
 
+    // Find the lesson based on the lesson number from the vocabulary input
+    let lesson = await Lesson.findOne({ lessonNumber: newVocabulary.lessonNo });
+
+    if (!lesson) {
+      return res
+        .status(404)
+        .send({ message: "Lesson not found for the given lesson number." });
+    }
+
+    // Add the new vocabulary to the lesson's vocabularies array
+    lesson.vocabularies.push(vocabulary);
+
+    // Save the vocabulary and the lesson
+    let vocab = await vocabulary.save();
+    let newLesson = await lesson.save();
+
+    res.send(vocab);
+  } catch (error) {
+    console.error(error);
+    res
+      .status(500)
+      .send({ message: "An error occurred while processing the request." });
+  }
 });
+
+// PUT to update vocabulary and move it to a new lesson if lessonNo changes
+app.put("/admin/allVocabularies/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updatedVocabulary = req.body;
+
+    // Find the existing vocabulary to update
+    let vocabulary = await Vocabulary.findById(id);
+
+    if (!vocabulary) {
+      return res.status(404).send({ message: "Vocabulary not found." });
+    }
+
+    // If the lessonNo is changing, update both the old and new lesson references
+    if (vocabulary.lessonNo !== updatedVocabulary.lessonNo) {
+      // 1. Remove the vocabulary from the old lesson's vocabularies array
+      let oldLesson = await Lesson.findOne({ lessonNumber: vocabulary.lessonNo });
+      if (oldLesson) {
+        oldLesson.vocabularies.pull(vocabulary._id); // Remove the vocabulary from old lesson
+        await oldLesson.save();
+      }
+
+      // 2. Find the new lesson based on the new lessonNo and add the vocabulary
+      let newLesson = await Lesson.findOne({ lessonNumber: updatedVocabulary.lessonNo });
+      if (!newLesson) {
+        return res
+          .status(404)
+          .send({ message: "New lesson not found for the given lesson number." });
+      }
+
+      newLesson.vocabularies.push(vocabulary); // Add vocabulary to the new lesson
+      await newLesson.save();
+    }
+
+    // Update the vocabulary with the new data (including the new lessonNo)
+    vocabulary = await Vocabulary.findByIdAndUpdate(id, { ...updatedVocabulary }, { new: true });
+
+    res.send(vocabulary);
+  } catch (error) {
+    console.error("Error updating vocabulary:", error);
+    res.status(500).send({ message: "An error occurred while updating the vocabulary." });
+  }
+});
+
 app.delete("/admin/allVocabularies/:id", async (req, res) => {
   try {
     const result = await Vocabulary.findByIdAndDelete(req.params.id);
@@ -213,6 +279,31 @@ app.delete("/admin/allVocabularies/:id", async (req, res) => {
     res.status(500).send({ message: "Error deleting vocabulary", error });
   }
 });
+
+app.get("/admin/allLessons/edit/:id", async(req,res)=>{
+  console.log(req.params.id);
+  let lesson = await Lesson.findById(req.params.id);
+  res.send(lesson);
+});
+
+app.put('/admin/allLessons/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updateLesson = req.body;
+
+    const updatedLesson = await Lesson.findByIdAndUpdate(id,{...updateLesson});
+
+    if (!updatedLesson) {
+      return res.status(404).json({ message: 'Lesson not found' });
+    }
+
+    res.status(200).json(updatedLesson);
+  } catch (error) {
+    console.error('Error updating lesson:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
 
 
 
